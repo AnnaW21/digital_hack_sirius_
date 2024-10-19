@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Графики</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content:space-between;
+            width: 80%;
+            margin-top: 20px;
+
+        }
+    
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            width: 32%;
+            margin: 10px 0;
+        }
+
+        span {
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <span> Text 1 to chart</span>
+        <div class="button-container">
+            <button id="changeTypeBtnBar">Гистограмма</button>
+            <button id="changeTypeBtnLine">Линейная</button>
+            <button id="changeTypeBtnPie">Круговая</button>
+        </div>
+        <div class="chart-container">
+            <canvas id="chart1"></canvas>
+        </div>
+    </div>
+
+    <div class="container">
+        <span> Text 2 to chart</span>
+        <div class="chart-container">
+            <canvas id="chart1"></canvas>
+        </div>
+    </div>
+
+    <div class="container">
+        <span> Text 3 to chart</span>
+        <div class="charts">
+            <div class="chart-container">
+                <canvas id="chart1"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart2"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart3"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <span>Final text</span>
+    </div>
+    <div class="container">
+        <form action="http://127.0.0.1:8000/" target="_blank">
+            <button>Upload data</button>
+        </form>
+    </div>
+    
+
+    <!-- Подключаем библиотеку Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Подключение к WebSocket
+        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
+
+        ws.onopen = function() {
+            console.log('WebSocket connection opened');
+        };
+
+        ws.onmessage = function(event) {
+            console.log('Message from server:', event.data);
+
+            // Здесь можно обновлять графики на основе данных от WebSocket
+            // const receivedData = event.data.split(',').map(Number);
+            const receivedData = event.data;
+            console.log('receivedData ', receivedData);
+            // labels = receivedData.iloc[0];
+            // const frequency = receivedData.iloc[1];
+            // updateCharts(receivedData);
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };
+
+        // Графики !!!!
+        fetch('data_1.csv') // Путь к CSV файлу в той же директории
+                .then(response => response.text()) // Чтение файла как текст
+                .then(csvText => {
+                    // console.log(csvText[0])
+                    const csvData = parseCSV(csvText); // Парсинг CSV
+                    console.log(csvData); // Выводим распарсенные данные
+                    const frequency = [csvData[1][2], csvData[2][2], csvData[3][2]];
+                    const titleText = 'Какие причины (факторы) сформировали ваше решение уйти из компании?'
+                    labels = [csvData[1][1], csvData[2][1], csvData[3][1]]
+                    // Создаем три графика с начальными данными
+                    chart1 = createChart('chart1', frequency, labels, 'bar', titleText);
+
+                    // Функция для смены типа графика
+                    document.getElementById('changeTypeBtnBar').addEventListener('click', () => {
+                        // Меняем тип графика
+                        chart1.destroy();
+                        chart1 = createChart('chart1', frequency, labels, 'bar', titleText);
+
+                    });
+                    document.getElementById('changeTypeBtnLine').addEventListener('click', () => {
+                        // Меняем тип графика
+                        chart1.destroy();
+                        chart1 = createChart('chart1', frequency, labels, 'line', titleText);
+                        
+
+                        // chartType =  'line';
+                        // console.log("line");
+                        // chart1.type = chartType;
+                        // chart1.update();
+                        // let chart1 = createChart('chart1', defaultData, labels, chartType);
+
+                    });
+                    document.getElementById('changeTypeBtnPie').addEventListener('click', () => {
+                        // Меняем тип графика
+                        chart1.destroy();
+                        chart1 = createChart('chart1', frequency, labels, 'pie', titleText);
+
+                    });
+                    // return frequency
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке CSV файла:', error);
+                }); 
+
+        // Простая функция для парсинга CSV
+        function parseCSV(csvText) {
+            
+            const lines = csvText.split('\n'); // Разделяем по строкам
+            // console.log(lines)
+            // const items = lines.split(','); // Разделяем по строкам
+            return lines.map(line => line.split(',')); // Разделяем строки по запятым
+
+        }
+
+
+
+        // Пример данных для графиков (будут заменены при загрузке файла или от WebSocket)
+        // Данные по процентам по частым ключевым фразам (!!!! заменить)
+        // const frequency = [csvData[1, 2], csvData[2, 2], csvData[3, 2]];
+        // console.log(frequency)  
+        // const titleText = ''  
+        // labels = ['bhkju', 'rte', 'gtre']
+        // type = 'bar'
+
+        // Функция для создания графика
+        function createChart(chartId, data, labels, type, titleText) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            return new Chart(ctx, {
+                type: type, // Тип графика (можно изменить на line, pie, и т.д.)
+                data: {
+                    // labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+                    labels: labels,
+                    datasets: [{
+                        label: 'Проценты',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true, // Включаем отображение заголовка
+                            text: titleText, // Текст заголовка на русском
+                            font: {
+                                size: 18, // Размер шрифта заголовка
+                                family: 'Roboto', // Указываем шрифт с поддержкой кириллицы
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        }
+                    }
+
+                }
+            });
+        }
+        
+        // Создаем три графика с начальными данными
+        chart1 = createChart('chart1', frequency, labels, 'bar');
+
+        // Функция для смены типа графика
+        document.getElementById('changeTypeBtnBar').addEventListener('click', () => {
+            // Меняем тип графика
+            chart1.destroy();
+            chart1 = createChart('chart1', frequency, labels, 'bar');
+
+        });
+        document.getElementById('changeTypeBtnLine').addEventListener('click', () => {
+            // Меняем тип графика
+            chart1.destroy();
+            chart1 = createChart('chart1', frequency, labels, 'line');
+            
+
+            // chartType =  'line';
+            // console.log("line");
+            // chart1.type = chartType;
+            // chart1.update();
+            // let chart1 = createChart('chart1', defaultData, labels, chartType);
+
+        });
+        document.getElementById('changeTypeBtnPie').addEventListener('click', () => {
+            // Меняем тип графика
+            chart1.destroy();
+            chart1 = createChart('chart1', frequency, labels, 'pie');
+
+        });
+
+        // Функция для обновления всех графиков
+        function updateCharts(newData) {
+            chart1.data.datasets[0].data = newData;
+            chart1.update();
+            
+            chart2.data.datasets[0].data = newData;
+            chart2.update();
+            
+            chart3.data.datasets[0].data = newData;
+            chart3.update();
+        }
+    </script>
+</body>
+</html>
