@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 80%;
+            margin-top: 20px;
+        }
+        .charts {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .chart-container {
+            width: 32%;
+            margin: 10px 0;
+        }
+
+        span {
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Upload file and get report on data</h1>
+    <h2>csv, txt, json</h2>
+
+    <div>
+        <input type="file" id="fileInput" accept=".csv,.txt,.json,.xlsx" />
+        <form action="static/charts.html" target="_blank">
+            <button>Get report</button>
+        </form>
+    </div>
+    
+    <script>
+        // Подключение к WebSocket
+        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
+
+        ws.onopen = function() {
+            console.log('WebSocket connection opened');
+        };
+
+        ws.onmessage = function(event) {
+            console.log('Message from server:', event.data);
+
+            // Здесь можно обновлять графики на основе данных от WebSocket
+            const receivedData = event.data.split(',').map(Number);
+            updateCharts(receivedData);
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };  
+
+        // Обработчик загрузки файла
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                console.log('File content loaded:', contents);
+
+                // Отправляем бинарные данные файла на сервер через WebSocket
+                ws.send(contents);
+            };
+
+            // Читаем файл как ArrayBuffer (бинарные данные)
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
